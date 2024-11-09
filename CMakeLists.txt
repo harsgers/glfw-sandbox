@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.30.0)
+
+project(sandbox)
+
+add_executable(${PROJECT_NAME} main.cpp)
