@@ -1,145 +1,126 @@
-#include <OpenGL/gltypes.h>
-#include <cmath>
 #define GL_SILENCE_DEPRECATION
 /* Ask for an OpenGL Core Context */
 #define GLFW_INCLUDE_GLCOREARB
-#include "GLFW/glfw3.h"
-#include <stdio.h>
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+#include <GLFW/glfw3.h>
 
-const char *vertex_shader = "#version 400\n"
-                            "in vec3 vp;"
-                            "void main() {"
-                            "  gl_Position = vec4(vp, 1.0);"
-                            "}";
+#include "shader.h"
 
-const char *fragment_shader_duex = "#version 400\n"
-                              "out vec4 frag_colour;"
-                              "uniform vec4 color;"
-                              "void main() {"
-                              "  frag_colour = color;"
-                              "}";
+#include <iostream>
 
-const char *fragment_shader = "#version 400\n"
-                                   "out vec4 frag_colour;"
-                                   "void main() {"
-                                   "  frag_colour = vec4(1.0, 0.0, 0.5, 1.0);"
-                                   "}";
-int main(int argc, char **argv) {
-  float points[] = {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-  float pointsTwo[] = {0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f};
-  float pointsThree[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-  GLFWwindow *window;
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow *window);
 
-  /* Initialize the library */
-  if (!glfwInit()) {
-    return -1;
-  }
+// settings
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
+
+int main()
+{
+    // glfw: initialize and configure
+    // ------------------------------
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
-  /* We need to explicitly ask for a 3.2 context on OS X */
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-  /* Create a windowed mode window and its OpenGL context */
-  window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-  if (!window) {
+    // glfw window creation
+    // --------------------
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // build and compile our shader program
+    // ------------------------------------
+    Shader ourShader("/Users/harrisongerstenlauer/cpp-learning/graphics/glfw-sandbox/shaders/vert.glsl", "/Users/harrisongerstenlauer/cpp-learning/graphics/glfw-sandbox/shaders/f.frag");
+
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices[] = {
+        // positions         // colors
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right
+        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // bottom left
+         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // top 
+    };
+
+    unsigned int VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+    // glBindVertexArray(0);
+
+
+    // render loop
+    // -----------
+    while (!glfwWindowShouldClose(window))
+    {
+        // input
+        // -----
+        processInput(window);
+
+        // render
+        // ------
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // render the triangle
+        ourShader.use();
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    // optional: de-allocate all resources once they've outlived their purpose:
+    // ------------------------------------------------------------------------
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+
+    // glfw: terminate, clearing all previously allocated GLFW resources.
+    // ------------------------------------------------------------------
     glfwTerminate();
-    return -1;
-  }
+    return 0;
+}
 
-  /* Make the window's context current */
-  glfwMakeContextCurrent(window);
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
 
-  const GLubyte *renderer = glGetString(GL_RENDERER); // get renderer string
-  const GLubyte *version = glGetString(GL_VERSION);   // version as a string
-  printf("Renderer: %s\n", renderer);
-  printf("OpenGL version supported %s\n", version);
-  // declaring and binding vertex buffer obj
-  GLuint verbo = 0;
-  glGenBuffers(1, &verbo);
-  glBindBuffer(GL_ARRAY_BUFFER, verbo);
-  glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW);
-  // declare and bind verte array obj
-  // second buffer obj
-  GLuint verboTwo = 1;
-  glGenBuffers(1, &verboTwo);
-  glBindBuffer(GL_ARRAY_BUFFER, verboTwo);
-  glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), pointsTwo, GL_STATIC_DRAW);
-
-  GLuint vboThree = 2;
-  glGenBuffers(1, &vboThree);
-  glBindBuffer(GL_ARRAY_BUFFER, vboThree);
-  glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), pointsThree, GL_STATIC_DRAW);
-
-  GLuint verao = 0;
-  glGenVertexArrays(1, &verao);
-  glBindVertexArray(verao);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, verbo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-  // second
-  GLuint second = 1;
-  glGenVertexArrays(1, &second);
-  glBindVertexArray(second);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, verboTwo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-  GLuint third = 2;
-  glGenVertexArrays(1, &third);
-  glBindVertexArray(third);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, vboThree);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-  // create shader in GL and load shader fragments above
-  GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vs, 1, &vertex_shader, NULL);
-  glCompileShader(vs);
-  GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fs, 1, &fragment_shader, NULL);
-  glCompileShader(fs);
-  GLuint fsd = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fsd, 1, &fragment_shader_duex, NULL);
-  glCompileShader(fsd);
-  // attach and link shaders
-  GLuint shader_programme = glCreateProgram();
-  glAttachShader(shader_programme, fs);
-  glAttachShader(shader_programme, vs);
-  glLinkProgram(shader_programme);
-
-  GLuint shader_programme_duex = glCreateProgram();
-  glAttachShader(shader_programme_duex, vs);
-  glAttachShader(shader_programme_duex, fsd);
-  glLinkProgram(shader_programme_duex);
-  /* Loop until the user closes the window */
-  
-  glClearColor(.2, .2, .2, 1);
-  while (!glfwWindowShouldClose(window)) {
-    // wipe the drawing surface clear
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUseProgram(shader_programme);
-    glBindVertexArray(verao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    // draw points 0-3 from the currently bound VAO with current in-use shader
-  double timeVal = glfwGetTime();
-  float colorVal = static_cast<float>((sin(timeVal) / 2.0f) + .5f);
-  int colorLocation = glGetUniformLocation(shader_programme_duex, "color");
-    glUseProgram(shader_programme_duex);
-  glUniform4f(colorLocation, 0.0f, colorVal, 0.0f, 1.0f);
-    glBindVertexArray(second);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray(third);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    // update other events like input handling
-    glfwPollEvents();
-    // put the stuff we've been drawing onto the display
-    glfwSwapBuffers(window);
-  }
-
-  glfwTerminate();
-  return 0;
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and 
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
 }
