@@ -41,7 +41,7 @@ int main()
 
     // build and compile our shader program
     // ------------------------------------
-    Shader ourShader("/Users/harrisongerstenlauer/cpp-learning/graphics/glfw-sandbox/shaders/vert.glsl", "/Users/harrisongerstenlauer/cpp-learning/graphics/glfw-sandbox/shaders/f.frag");
+    Shader ourShader("/Users/harrisongerstenlauer/cpp-learning/graphics/glfw-sandbox/shaders/vert.glsl", "/Users/harrisongerstenlauer/cpp-learning/graphics/glfw-sandbox/shaders/frag.glsl");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -72,6 +72,8 @@ int main()
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     // glBindVertexArray(0);
 
+    ourShader.use();
+    ourShader.setFloat("offset", -0.4f);
 
     // render loop
     // -----------

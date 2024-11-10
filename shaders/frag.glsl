@@ -1,6 +1,6 @@
 #version 400
+in vec4 colorVert;
 out vec4 frag_colour;
-uniform vec4 color;
 void main() {
-	frag_colour = color;
+    frag_colour = colorVert;
 }
